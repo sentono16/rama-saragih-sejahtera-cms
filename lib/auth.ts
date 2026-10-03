@@ -1,0 +1,3 @@
+import {authClient} from './supabase/server';
+export async function isAdmin(){try{const client=await authClient();const {data:{user},error}=await client.auth.getUser();const email=process.env.CMS_ADMIN_EMAIL;return !error&&!!user&&!!email&&user.email?.toLowerCase()===email.toLowerCase();}catch{return false;}}
+export function sameOrigin(request:Request){const origin=request.headers.get('origin');if(!origin)return false;try{const parsed=new URL(origin);const host=request.headers.get('host')||new URL(request.url).host;return ['http:','https:'].includes(parsed.protocol)&&parsed.origin===origin&&parsed.host.toLowerCase()===host.toLowerCase();}catch{return false;}}
