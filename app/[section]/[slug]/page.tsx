@@ -1,8 +1,83 @@
-import Link from 'next/link';
-import {notFound} from 'next/navigation';
-import {publicContent} from '../../../lib/db';
-import {sectionTypes} from '../../../lib/content';
-import {Shell} from '../../site-components';
-export const dynamic='force-dynamic';
-export async function generateMetadata({params}:{params:Promise<{section:string;slug:string}>}){const {section,slug}=await params;const {data}=await publicContent();const e=data.entries.find(e=>e.type===sectionTypes[section]&&e.slug===slug&&e.published);return {title:e?.seoTitle?{absolute:e.seoTitle}:e?.title,description:e?.seoDescription||e?.summary,openGraph:{title:e?.seoTitle||e?.title,description:e?.seoDescription||e?.summary,images:e?.image?[e.image]:[]},twitter:{images:e?.image?[e.image]:[]}};}
-export default async function Detail({params}:{params:Promise<{section:string;slug:string}>}){const {section,slug}=await params;const {data,unavailable}=await publicContent();const e=data.entries.find(e=>e.type===sectionTypes[section]&&e.slug===slug&&e.published);if(!e)notFound();return <Shell data={data} unavailable={unavailable}><section className="page-hero"><div className="wrap"><div className="breadcrumb"><Link href="/">Beranda</Link><span>/</span><Link href={'/'+section}>{section}</Link></div><span className="eyebrow">{e.category}</span><h1>{e.title}</h1><p>{e.summary}</p></div></section><article className="wrap section article">{e.image&&<img className="article-image" src={e.image} alt={e.title}/>}<div className="rich" dangerouslySetInnerHTML={{__html:e.body}}/>{e.file&&<a href={e.file} className="button" download>Unduh Dokumen</a>}{e.type==='service'&&<div className="article-cta"><h2>Diskusikan kebutuhan {e.title.toLowerCase()}.</h2><p>Sampaikan ruang lingkup dan rencana pekerjaan Anda kepada tim kami.</p><Link href="/kontak" className="button">Hubungi Kami</Link></div>}<Link className="text-link back-link" href={'/'+section}>Kembali ke {section}</Link></article></Shell>;}
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { publicContent } from "../../../lib/db";
+import { sectionTypes } from "../../../lib/content";
+import Gallery from "../../gallery";
+import { Shell } from "../../site-components";
+export const dynamic = "force-dynamic";
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ section: string; slug: string }>;
+}) {
+  const { section, slug } = await params;
+  const { data } = await publicContent();
+  const e = data.entries.find(
+    (e) => e.type === sectionTypes[section] && e.slug === slug && e.published,
+  );
+  return {
+    title: e?.seoTitle ? { absolute: e.seoTitle } : e?.title,
+    description: e?.seoDescription || e?.summary,
+    openGraph: {
+      title: e?.seoTitle || e?.title,
+      description: e?.seoDescription || e?.summary,
+      images: e?.image ? [e.image] : [],
+    },
+    twitter: { images: e?.image ? [e.image] : [] },
+  };
+}
+export default async function Detail({
+  params,
+}: {
+  params: Promise<{ section: string; slug: string }>;
+}) {
+  const { section, slug } = await params;
+  const { data, unavailable } = await publicContent();
+  const e = data.entries.find(
+    (e) => e.type === sectionTypes[section] && e.slug === slug && e.published,
+  );
+  if (!e) notFound();
+  return (
+    <Shell data={data} unavailable={unavailable}>
+      <section className="page-hero">
+        <div className="wrap">
+          <div className="breadcrumb">
+            <Link href="/">Beranda</Link>
+            <span>/</span>
+            <Link href={"/" + section}>{section}</Link>
+          </div>
+          <span className="eyebrow">{e.category}</span>
+          <h1>{e.title}</h1>
+          <p>{e.summary}</p>
+        </div>
+      </section>
+      <article className="wrap section article">
+        {e.image && (
+          <img className="article-image" src={e.image} alt={e.title} />
+        )}
+        <div className="rich" dangerouslySetInnerHTML={{ __html: e.body }} />
+        <Gallery photos={e.gallery} title={e.galleryTitle} />
+        {e.file && (
+          <a href={e.file} className="button" download>
+            Unduh Dokumen
+          </a>
+        )}
+        {e.type === "service" && (
+          <div className="article-cta">
+            <h2>Diskusikan kebutuhan {e.title.toLowerCase()}.</h2>
+            <p>
+              Sampaikan ruang lingkup dan rencana pekerjaan Anda kepada tim
+              kami.
+            </p>
+            <Link href="/kontak" className="button">
+              Hubungi Kami
+            </Link>
+          </div>
+        )}
+        <Link className="text-link back-link" href={"/" + section}>
+          Kembali ke {section}
+        </Link>
+      </article>
+    </Shell>
+  );
+}

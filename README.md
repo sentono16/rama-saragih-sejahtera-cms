@@ -57,3 +57,12 @@ On 3 October 2026, the original private website's content, message and upload ta
 ## Notifications
 
 Contact form messages are stored in the CMS inbox. Email notifications are not configured.
+
+## Pages, Legalitas and photo albums (CMS v2)
+
+- `Halaman & Menu` manages all existing and new public pages: Beranda, Perusahaan, Layanan, Proyek, Berita, Kontak, Unduhan and Legalitas. Existing service/project/news/document detail pages remain in their respective tabs.
+- Edit, draft, publish, hide from navigation or delete any page. Click `Simpan Perubahan` to persist. Deleted pages return 404 and stay deleted after reload.
+- Every page/detail entry supports the rich text editor, inline image/document uploads and a photo album. Albums support multiple uploads, alt text, captions, ordering, removal and a keyboard-accessible lightbox.
+- Legalitas is seeded from the company information supplied on 4 October 2026. Identifiers are recorded as supplied, without independent verification.
+- Existing saved JSON is upgraded without overwriting content. The next CMS save persists `schemaVersion: 2` and the page records. No additional SQL migration is required: albums use the existing JSONB content row and existing `rama-media` bucket.
+- `npm test` checks backward compatibility, page deletion, draft visibility, album persistence/validation and HTML sanitization. Live database and Storage connectivity still depend on the deployment's Supabase configuration.
