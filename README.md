@@ -58,11 +58,21 @@ On 3 October 2026, the original private website's content, message and upload ta
 
 Contact form messages are stored in the CMS inbox. Email notifications are not configured.
 
-## Pages, Legalitas and photo albums (CMS v2)
+## Pages, Legalitas and photo albums (CMS v3)
 
 - `Halaman & Menu` manages all existing and new public pages: Beranda, Perusahaan, Layanan, Proyek, Berita, Kontak, Unduhan and Legalitas. Existing service/project/news/document detail pages remain in their respective tabs.
 - Edit, draft, publish, hide from navigation or delete any page. Click `Simpan Perubahan` to persist. Deleted pages return 404 and stay deleted after reload.
-- Every page/detail entry supports the rich text editor, inline image/document uploads and a photo album. Albums support multiple uploads, alt text, captions, ordering, removal and a keyboard-accessible lightbox.
+- Every page/detail entry supports the rich text editor, inline image/document uploads and a photo album. Albums support multiple uploads, alt text, captions, ordering, replacement, removal and a keyboard-accessible lightbox. The editor supports headings, font/size/color, emphasis, lists, alignment, links, quotes, tables, image sizing/alt text, undo/redo and HTML mode.
 - Legalitas is seeded from the company information supplied on 4 October 2026. Identifiers are recorded as supplied, without independent verification.
-- Existing saved JSON is upgraded without overwriting content. The next CMS save persists `schemaVersion: 2` and the page records. No additional SQL migration is required: albums use the existing JSONB content row and existing `rama-media` bucket.
+- Existing saved JSON is upgraded without overwriting customized content. The next CMS save persists `schemaVersion: 3` and the page records. An admin notice and enabled Save button identify pending profile migration. No additional SQL migration is required: albums use the existing JSONB content row and existing `rama-media` bucket.
 - `npm test` checks backward compatibility, page deletion, draft visibility, album persistence/validation and HTML sanitization. Live database and Storage connectivity still depend on the deployment's Supabase configuration.
+
+## Company Profile update — 5 October 2026
+
+- Source: `Company_Profile_PT_Rama_Saragih_Sejahtera_English_Transparent_Logo.pptx`, version 2, 18 slides. Website text is in Indonesian. Existing legal officer titles are retained for consistency with the legal information supplied by the user.
+- Adds editable Visi & Misi, Struktur Organisasi, QHSSE and Keselamatan Kerja pages. Enriches the unmodified starter company profile with the service principles. Custom page bodies are preserved. Previously deleted core pages are not restored.
+- Backfills empty legacy primary contact fields. Adds the Medan head office, Banten branch office, two email addresses and three phone numbers from the profile. Once version 3 is saved, deleting contacts or new profile pages remains effective.
+- `Pengaturan Website` manages all office/contact details, footer description, contact form title/introduction, and header/footer logos. Upload, replacement and removal require `Simpan Perubahan`; clearing a logo removes its public image. Unreferencing an asset retains its Storage file because it may be reused by other content.
+- The transparent RSST logo used in the latest profile replaces the original bundled gray-background starter logo. Custom uploaded logos and explicitly removed logos are preserved.
+- Footer navigation follows published CMS pages and includes small chevrons. The public contact form stores submissions in the admin inbox and reports database failures without showing a false success.
+- Illustrative AI photographs in the deck are not added as real project documentation. Albums remain ready for actual site photos.

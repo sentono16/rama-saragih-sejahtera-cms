@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { publicContent } from "../../lib/db";
 import { entryPath, findPage } from "../../lib/content";
-import { Shell, ContactForm } from "../site-components";
+import { Shell, ContactForm, OfficeAddresses, ContactLinks } from "../site-components";
 import Gallery from "../gallery";
 export const dynamic = "force-dynamic";
 export async function generateMetadata({
@@ -61,7 +61,7 @@ export default async function Section({
       >
         {page.template === "contact" ? (
           <>
-            <div>
+            <div className="contact-information">
               {page.image && (
                 <img
                   className="article-image"
@@ -73,32 +73,10 @@ export default async function Section({
                 className="rich"
                 dangerouslySetInnerHTML={{ __html: page.body }}
               />
-              {data.settings.email && (
-                <div className="contact-detail">
-                  <small>EMAIL</small>
-                  <a href={"mailto:" + data.settings.email}>
-                    {data.settings.email}
-                  </a>
-                </div>
-              )}
-              {data.settings.phone && (
-                <div className="contact-detail">
-                  <small>TELEPON</small>
-                  <a
-                    href={"tel:" + data.settings.phone.replace(/[^+0-9]/g, "")}
-                  >
-                    {data.settings.phone}
-                  </a>
-                </div>
-              )}
-              {data.settings.address && (
-                <div className="contact-detail">
-                  <small>ALAMAT</small>
-                  <p>{data.settings.address}</p>
-                </div>
-              )}
+              <OfficeAddresses settings={data.settings} />
+              <ContactLinks settings={data.settings} />
             </div>
-            <ContactForm />
+            <ContactForm title={data.settings.contactFormTitle} description={data.settings.contactFormText} />
             <div className="contact-album">
               <Gallery photos={page.gallery} title={page.galleryTitle} />
             </div>

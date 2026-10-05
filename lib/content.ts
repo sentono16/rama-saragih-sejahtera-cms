@@ -1,3 +1,4 @@
+import { companyContact, profilePages, servicePrinciples } from "./company-profile";
 export type Photo = { id: string; src: string; alt: string; caption: string };
 export type PageTemplate =
   "article" | "home" | "company" | "contact" | "listing";
@@ -31,6 +32,12 @@ export type Settings = {
   email: string;
   phone: string;
   address: string;
+  branchAddress: string;
+  additionalEmails: string[];
+  additionalPhones: string[];
+  footerText: string;
+  contactFormTitle: string;
+  contactFormText: string;
   seoTitle: string;
   seoDescription: string;
 };
@@ -96,13 +103,14 @@ export const defaults: Content = {
     heroText:
       "Jasa konstruksi, mekanikal, dan solusi industri dengan komitmen pada biaya, mutu, serta waktu pelaksanaan.",
     heroImage: "/images/industrial-hero.jpg",
-    logo: "/images/logo-rss.png",
-    footerLogo: "/images/logo-rss.png",
+    logo: "/images/logo-rss-transparent.png",
+    footerLogo: "/images/logo-rss-transparent.png",
     about:
       "<p>PT Rama Saragih Sejahtera bergerak di bidang jasa konstruksi dan pekerjaan industri, didukung oleh pengalaman para pengelola yang matang di bidangnya.</p><p>Ruang lingkup usaha kami meliputi mekanikal, isolasi, PWHT service, palm oil mill, sipil, blasting & painting, fabrikasi, serta instalasi pipa dan tank equipment, termasuk kebutuhan sektor minyak dan gas.</p><p>Kami telah bekerja sama dengan sejumlah perusahaan besar dan pabrik berstandar internasional dalam pekerjaan jasa konstruksi maupun penyediaan kebutuhan proyek. Pengalaman ini menjadi landasan untuk mengembangkan layanan di tingkat nasional dan internasional.</p><p>Setiap aktivitas berpedoman pada BMW: Biaya, Mutu, dan Waktu Pelaksanaan yang tepat. Kami mengoptimalkan penggunaan peralatan dan sumber daya, menjalankan disiplin kerja, serta mengutamakan manajemen yang responsif dalam pengambilan keputusan.</p><p>Tujuan kami adalah memberikan manfaat bagi pemberi pekerjaan dan turut berkontribusi dalam pembangunan secara berkelanjutan.</p>",
-    email: "",
-    phone: "",
-    address: "",
+    ...companyContact,
+    footerText: "Jasa konstruksi dan pekerjaan industri dengan komitmen pada biaya, mutu, dan waktu pelaksanaan.",
+    contactFormTitle: "Ceritakan kebutuhan proyek Anda",
+    contactFormText: "Sampaikan lokasi, ruang lingkup pekerjaan, dan rencana pelaksanaan. Tim kami akan meninjau pesan Anda untuk menindaklanjuti kebutuhan proyek.",
     seoTitle: "PT Rama Saragih Sejahtera | Konstruksi & Solusi Industri",
     seoDescription:
       "Jasa mekanikal, isolasi, PWHT, palm oil mill, sipil, blasting painting, fabrikasi, instalasi pipa dan tangki. Berpedoman pada Biaya, Mutu, dan Waktu.",
@@ -278,8 +286,16 @@ export function initialPages(settings: Settings): Entry[] {
   );
 }
 // Upgrade legacy JSON once in memory; schemaVersion is persisted on the next save.
-// Version 2 never re-seeds deleted pages, so deletion remains effective after reload.
+// Version 3 adds only the new profile pages; previously deleted core pages stay deleted.
 export function normalizeContent(input: Content): Content {
+  const upgrading = (input.schemaVersion ?? 1) < 3;
+  const settings = { ...defaults.settings, ...input.settings };
+  if (upgrading) {
+    for (const key of ["email", "phone", "address"] as const)
+      if (!settings[key]) settings[key] = companyContact[key];
+    for (const key of ["logo", "footerLogo"] as const)
+      if (settings[key] === "/images/logo-rss.png") settings[key] = defaults.settings[key];
+  }
   const entries: Entry[] = input.entries.map((e) => ({
     ...e,
     gallery: e.gallery ?? [],
@@ -287,12 +303,21 @@ export function normalizeContent(input: Content): Content {
     showInMenu: e.showInMenu ?? true,
   }));
   if ((input.schemaVersion ?? 1) < 2) {
-    for (const p of initialPages(input.settings)) {
+    for (const p of initialPages(settings)) {
       if (!entries.some((e) => e.type === "page" && e.slug === p.slug))
         entries.push(p);
     }
   }
-  return { ...input, schemaVersion: 2, entries };
+  if (upgrading) {
+    for (const p of profilePages) {
+      if (!entries.some((e) => e.type === "page" && e.slug === p.slug))
+        entries.push(makePage(p.slug, p.title, p.summary, p.body));
+    }
+    const company = entries.find((e) => e.type === "page" && e.slug === "perusahaan");
+    // Enrich the untouched starter profile without changing an administrator's custom copy.
+    if (company?.body === defaults.settings.about) company.body += servicePrinciples;
+  }
+  return { ...input, settings, schemaVersion: 3, entries };
 }
 export function findPage(data: Content, slug: string) {
   return data.entries.find(

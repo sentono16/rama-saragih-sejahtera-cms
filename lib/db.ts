@@ -3,6 +3,7 @@ import { defaults, normalizeContent, type Content } from "./content";
 export async function readContent(): Promise<{
   data: Content;
   version: number;
+  needsSave: boolean;
 }> {
   const { data, error } = await adminClient()
     .from("rama_site_content")
@@ -11,8 +12,8 @@ export async function readContent(): Promise<{
     .maybeSingle();
   if (error) throw error;
   return data
-    ? { data: normalizeContent(data.value as Content), version: data.version }
-    : { data: normalizeContent(defaults), version: 0 };
+    ? { data: normalizeContent(data.value as Content), version: data.version, needsSave: (data.value.schemaVersion ?? 1) < 3 }
+    : { data: normalizeContent(defaults), version: 0, needsSave: true };
 }
 export async function publicContent() {
   try {

@@ -16,6 +16,30 @@ export default function GalleryEditor({
   const [busy, setBusy] = useState(false),
     [progress, setProgress] = useState("");
   const input = useRef<HTMLInputElement>(null);
+  const replaceInput = useRef<HTMLInputElement>(null);
+  const replaceTarget = useRef("");
+  async function replace(file: File | undefined) {
+    if (!file) return;
+    if (!/^image\/(png|jpeg|webp)$/.test(file.type) || file.size > 10000000) {
+      onError("Pilih PNG, JPG, atau WEBP, maksimum 10 MB per foto.");
+      if (replaceInput.current) replaceInput.current.value = "";
+      return;
+    }
+    setBusy(true);
+    onBusy(true);
+    setProgress("Mengganti foto…");
+    try {
+      const result = await uploadFile(file);
+      onChange(photos.map(photo => photo.id === replaceTarget.current ? { ...photo, src: result.url } : photo));
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Penggantian foto gagal.");
+    } finally {
+      setBusy(false);
+      onBusy(false);
+      setProgress("");
+      if (replaceInput.current) replaceInput.current.value = "";
+    }
+  }
   async function upload(files: FileList | null) {
     if (!files?.length) return;
     const selected = Array.from(files);
@@ -70,7 +94,7 @@ export default function GalleryEditor({
   return (
     <section className="gallery-editor">
       <div className="section-top">
-        <h3>Album Foto</h3>
+        <h3>Album Foto <span className="album-count">{photos.length}/100</span></h3>
         <button
           type="button"
           className="secondary-button"
@@ -84,6 +108,7 @@ export default function GalleryEditor({
         PNG / JPG / WEBP, maksimum 10 MB per foto dan 100 foto per album. Simpan
         Perubahan untuk menampilkan album.
       </p>
+      <p>Gunakan keterangan foto untuk lokasi, tanggal, atau tahap pekerjaan. Foto dapat diganti, diurutkan, dan dihapus tanpa mengubah isi halaman.</p>
       <input
         ref={input}
         hidden
@@ -93,6 +118,7 @@ export default function GalleryEditor({
         aria-label="Pilih foto album"
         onChange={(e) => void upload(e.target.files)}
       />
+      <input ref={replaceInput} hidden type="file" accept=".png,.jpg,.jpeg,.webp" aria-label="Pilih pengganti foto album" onChange={e => void replace(e.target.files?.[0])} />
       {progress && <p role="status">{progress}</p>}
       <div className="album-admin-grid">
         {photos.map((photo, i) => (
@@ -130,6 +156,7 @@ export default function GalleryEditor({
               />
             </label>
             <div className="album-actions">
+              <button type="button" className="secondary-button" disabled={busy} onClick={() => { replaceTarget.current = photo.id; replaceInput.current?.click(); }}>Ganti foto</button>
               <button
                 type="button"
                 disabled={busy || i === 0}

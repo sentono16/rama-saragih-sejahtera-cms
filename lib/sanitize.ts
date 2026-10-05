@@ -39,7 +39,7 @@ export function cleanHtml(value: string) {
     ],
     allowedAttributes: {
       a: ["href", "target", "rel"],
-      img: ["src", "alt", "title", "width", "height"],
+      img: ["src", "alt", "title", "width", "height", "style"],
       p: ["style"],
       h2: ["style"],
       h3: ["style"],
@@ -59,6 +59,7 @@ export function cleanHtml(value: string) {
         "font-size": [/^(?:12|14|16|18|20|24|28|32|36)px$/],
         "font-family": [/^(?:Arial|Georgia|Verdana|Tahoma|Times New Roman)$/],
       },
+      img: { width: [/^[1-9]\d{1,3}px$/] },
     },
     allowedSchemes: ["http", "https", "mailto", "tel"],
     allowProtocolRelative: false,

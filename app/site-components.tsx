@@ -1,8 +1,28 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { Menu, X, Mail, Phone, MapPin } from "lucide-react";
-import { Content, publicNavigation, entryPath } from "../lib/content";
+import { Menu, X, Mail, Phone, MapPin, ChevronRight, Send } from "lucide-react";
+import { Content, Settings, publicNavigation, entryPath } from "../lib/content";
+export function OfficeAddresses({ settings }: { settings: Settings }) {
+  return <div className="office-addresses">{[
+    ["Kantor Pusat", settings.address], ["Kantor Cabang", settings.branchAddress],
+  ].filter(([, address]) => address).map(([title, address]) => (
+    <div className="office-address" key={title}>
+      <MapPin size={18} aria-hidden="true" />
+      <div><h3>{title}</h3><address>{address}</address>
+        <a className="map-link" href={"https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(address)} target="_blank" rel="noreferrer">Lihat lokasi <ChevronRight size={14} aria-hidden="true" /></a>
+      </div>
+    </div>
+  ))}</div>;
+}
+export function ContactLinks({ settings }: { settings: Settings }) {
+  const emails = [...new Set([settings.email, ...settings.additionalEmails].filter(Boolean))];
+  const phones = [...new Set([settings.phone, ...settings.additionalPhones].filter(Boolean))];
+  return <div className="contact-links">
+    {emails.length > 0 && <div><span className="contact-label">Email</span>{emails.map(email => <a key={email} href={"mailto:" + email}><Mail size={16} aria-hidden="true" /><span>{email}</span></a>)}</div>}
+    {phones.length > 0 && <div><span className="contact-label">Telepon</span>{phones.map(phone => <a key={phone} href={"tel:" + phone.replace(/[^+0-9]/g, "")}><Phone size={16} aria-hidden="true" /><span>{phone}</span></a>)}</div>}
+  </div>;
+}
 export function Shell({
   data,
   children,
@@ -44,7 +64,7 @@ export function Shell({
       <header className="header">
         <div className="wrap header-inner">
           <Link className="brand" href="/" onClick={() => setOpen(false)}>
-            {s.logo && <img src={s.logo} alt="Logo perusahaan" />}
+            {s.logo && <img src={s.logo} alt={"Logo " + s.company} />}
             <span>
               {s.company}
               <small>CONSTRUCTION & INDUSTRIAL SERVICES</small>
@@ -109,47 +129,32 @@ export function Shell({
         <div className="wrap footer-grid">
           <div>
             <div className="footer-brand">
-              {s.footerLogo && <img src={s.footerLogo} alt="Logo perusahaan" />}
+              {s.footerLogo && <img src={s.footerLogo} alt={"Logo " + s.company} />}
               <h3>{s.company}</h3>
             </div>
-            <p>
-              Jasa konstruksi dan pekerjaan industri dengan komitmen pada biaya,
-              mutu, dan waktu pelaksanaan.
-            </p>
+            <p>{s.footerText}</p>
             <span className="gold smallcaps">BMW YANG TEPAT</span>
           </div>
-          <div>
+          <nav className="footer-navigation" aria-label="Navigasi footer">
             <h4>Jelajahi</h4>
             {allPages
               .filter((e) => e.slug !== "beranda")
               .map((e) => (
                 <Link key={e.id} href={entryPath(e)}>
+                  <ChevronRight size={14} aria-hidden="true" />
                   {e.title}
                 </Link>
               ))}
+          </nav>
+          <div className="footer-offices">
+            <h4>Kantor Kami</h4>
+            <OfficeAddresses settings={s} />
           </div>
           <div>
-            <h4>Komunikasi</h4>
-            {s.email && (
-              <a href={"mailto:" + s.email}>
-                <Mail size={16} />
-                {s.email}
-              </a>
-            )}
-            {s.phone && (
-              <a href={"tel:" + s.phone.replace(/[^+0-9]/g, "")}>
-                <Phone size={16} />
-                {s.phone}
-              </a>
-            )}
-            {s.address && (
-              <p>
-                <MapPin size={16} />
-                {s.address}
-              </p>
-            )}
+            <h4>Hubungi Kami</h4>
+            <ContactLinks settings={s} />
             {contact && (
-              <Link href={entryPath(contact)}>Kirim pertanyaan proyek</Link>
+              <Link className="footer-contact-link" href={entryPath(contact)}><ChevronRight size={14} aria-hidden="true" />Kirim pertanyaan proyek</Link>
             )}
           </div>
         </div>
@@ -163,7 +168,7 @@ export function Shell({
     </>
   );
 }
-export function ContactForm() {
+export function ContactForm({ title, description }: { title: string; description: string }) {
   const [busy, setBusy] = useState(false),
     [message, setMessage] = useState(""),
     [success, setSuccess] = useState(false);
@@ -172,6 +177,7 @@ export function ContactForm() {
     const form = e.currentTarget;
     const data = Object.fromEntries(new FormData(form));
     setBusy(true);
+    setSuccess(false);
     setMessage("");
     try {
       const r = await fetch("/api/messages", {
@@ -196,26 +202,30 @@ export function ContactForm() {
     }
   }
   return (
-    <form className="contact-form" onSubmit={send}>
-      <h2>Ceritakan kebutuhan proyek Anda</h2>
+    <form className="contact-form" onSubmit={send} aria-busy={busy}>
+      <span className="eyebrow dark">PERTANYAAN & KERJA SAMA</span>
+      <h2>{title}</h2>
+      <p>{description}</p>
+      <fieldset disabled={busy}>
       <div className="form-grid">
         <label>
-          Nama
+          Nama lengkap <span className="required-mark">*</span>
           <input
             name="name"
             required
             minLength={2}
             maxLength={100}
             autoComplete="name"
+            placeholder="Nama Anda"
           />
         </label>
         <label>
-          Email
-          <input name="email" type="email" required autoComplete="email" />
+          Email <span className="required-mark">*</span>
+          <input name="email" type="email" required maxLength={200} autoComplete="email" placeholder="nama@perusahaan.com" />
         </label>
         <label>
-          Perusahaan
-          <input name="company" maxLength={150} autoComplete="organization" />
+          Perusahaan (opsional)
+          <input name="company" maxLength={150} autoComplete="organization" placeholder="Nama perusahaan" />
         </label>
         <label>
           Topik
@@ -228,22 +238,26 @@ export function ContactForm() {
         </label>
       </div>
       <label>
-        Pesan
+        Pesan <span className="required-mark">*</span>
         <textarea
           name="message"
           required
           minLength={10}
           maxLength={5000}
           rows={6}
+          placeholder="Lokasi proyek, pekerjaan yang dibutuhkan, dan rencana waktu pelaksanaan…"
         />
       </label>
       <label className="honeypot" aria-hidden="true">
         Website
         <input name="website" tabIndex={-1} autoComplete="off" />
       </label>
+      <p className="form-help">* Wajib diisi. Pesan Anda akan ditinjau oleh tim perusahaan.</p>
       <button className="button" disabled={busy}>
+        <Send size={16} aria-hidden="true" />
         {busy ? "Mengirim…" : "Kirim Pesan"}
       </button>
+      </fieldset>
       {message && (
         <p
           role="status"

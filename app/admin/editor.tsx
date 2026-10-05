@@ -17,7 +17,7 @@ import {
   Menu,
   X,
 } from "lucide-react";
-import { Content, Entry, entryPath } from "../../lib/content";
+import { Content, Entry, entryPath, type Settings as SiteSettings } from "../../lib/content";
 import { uploadFile } from "../../lib/upload-client";
 import RichEditor from "./rich-editor";
 import GalleryEditor from "./gallery-editor";
@@ -41,6 +41,15 @@ const tabs = [
   ["document", "Dokumen", FileText],
   ["messages", "Kotak Masuk", Inbox],
 ] as const;
+function ContactListField({ label, values, type = "text", onChange }: { label: string; values: string[]; type?: string; onChange: (values: string[]) => void }) {
+  return <div className="contact-list-field"><span className="field-label">{label}</span>
+    {values.map((value, index) => <div className="contact-input-row" key={index}>
+      <input type={type} aria-label={label + " " + (index + 1)} value={value} maxLength={type === "email" ? 200 : 60} onChange={e => onChange(values.map((v, i) => i === index ? e.target.value : v))} />
+      <button type="button" className="danger-button" aria-label={"Hapus " + label.toLowerCase() + " " + (index + 1)} onClick={() => onChange(values.filter((_, i) => i !== index))}><Trash2 size={16} /></button>
+    </div>)}
+    <button type="button" className="secondary-button" disabled={values.length >= 10} onClick={() => onChange([...values, ""])}><Plus size={15} />Tambah {label.toLowerCase()}</button>
+  </div>;
+}
 function UploadField({
   value,
   label,
@@ -57,6 +66,7 @@ function UploadField({
   onBusy: (busy: boolean) => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const isLogo = label.toLowerCase().includes("logo");
   async function upload(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
@@ -88,15 +98,17 @@ function UploadField({
           <button
             type="button"
             className="subtle-button"
+            disabled={busy}
             onClick={() => onChange("")}
           >
-            Hapus pilihan
+            <Trash2 size={14} />{isLogo ? "Hapus logo" : "Hapus pilihan"}
           </button>
         </div>
       )}
+      {!value && isLogo && <p className="logo-empty">Logo belum dipilih. Nama perusahaan tetap ditampilkan.</p>}
       <label className="upload-button">
         <Upload size={16} />
-        {busy ? "Mengunggah…" : "Pilih & Unggah File"}
+        {busy ? "Mengunggah…" : isLogo ? value ? "Ganti & Unggah Logo" : "Upload Logo" : "Pilih & Unggah File"}
         <input
           disabled={busy}
           type="file"
@@ -109,6 +121,7 @@ function UploadField({
         />
       </label>
       <small>{note} Maks. 10 MB.</small>
+      {isLogo && <small>Unggah, penggantian, dan penghapusan berlaku setelah klik Simpan Perubahan.</small>}
     </div>
   );
 }
@@ -137,13 +150,15 @@ export default function Admin() {
         data: Content;
         version: number;
         messages: Message[];
+        needsSave?: boolean;
       };
       if (!r.ok) throw Error(j.error);
       setData(j.data);
       setVersion(j.version);
       setMessages(j.messages);
-      setDirty(false);
-      setNotice("");
+      setDirty(!!j.needsSave);
+      setError(false);
+      setNotice(j.needsSave ? "Data Company Profile terbaru telah dilengkapi. Klik Simpan Perubahan untuk menyimpannya ke database." : "");
     } catch (e) {
       setError(true);
       setNotice(e instanceof Error ? e.message : "Konten gagal dimuat.");
@@ -169,7 +184,7 @@ export default function Admin() {
     setDirty(true);
     setNotice("");
   }
-  function setting(k: keyof Content["settings"], v: string) {
+  function setting<K extends keyof SiteSettings>(k: K, v: SiteSettings[K]) {
     setData((previous) =>
       previous
         ? {
@@ -180,13 +195,13 @@ export default function Admin() {
                 ? {
                     ...e,
                     ...(k === "heroImage"
-                      ? { image: v }
+                      ? { image: v as string }
                       : k === "heroText"
-                        ? { summary: v }
+                        ? { summary: v as string }
                         : k === "seoTitle"
-                          ? { seoTitle: v }
+                          ? { seoTitle: v as string }
                           : k === "seoDescription"
-                            ? { seoDescription: v }
+                            ? { seoDescription: v as string }
                             : {}),
                   }
                 : e,
@@ -462,8 +477,7 @@ export default function Admin() {
                   <div className="admin-panel">
                     <h3>Lengkapi informasi perusahaan</h3>
                     <p>
-                      Alamat, email, telepon, serta dokumen perusahaan dapat
-                      ditambahkan sesuai data resmi.
+                      Kelola logo, alamat kantor pusat dan cabang, email, telepon, footer, serta formulir kontak. Halaman profil dari Company Profile tersedia di Halaman & Menu.
                     </p>
                     <button
                       className="secondary-button"
@@ -476,7 +490,7 @@ export default function Admin() {
               )}
               {tab === "settings" && (
                 <div className="admin-panel">
-                  <h2>Identitas & Beranda</h2>
+                  <h2>Identitas & Kontak Perusahaan</h2>
                   <p>
                     Isi halaman Beranda, Perusahaan, Legalitas, dan halaman
                     utama lain dapat diedit melalui Halaman & Menu.
@@ -490,7 +504,7 @@ export default function Admin() {
                       />
                     </label>
                     <label>
-                      Email perusahaan
+                      Email utama
                       <input
                         type="email"
                         value={data.settings.email}
@@ -498,21 +512,29 @@ export default function Admin() {
                       />
                     </label>
                     <label>
-                      Nomor telepon
+                      Telepon utama
                       <input
                         value={data.settings.phone}
                         onChange={(e) => setting("phone", e.target.value)}
                       />
                     </label>
                     <label>
-                      Alamat
+                      Alamat kantor pusat
                       <textarea
                         rows={3}
                         value={data.settings.address}
                         onChange={(e) => setting("address", e.target.value)}
                       />
                     </label>
+                    <label>Alamat kantor cabang<textarea rows={4} maxLength={500} value={data.settings.branchAddress} onChange={e => setting("branchAddress", e.target.value)} /></label>
+                    <ContactListField label="Email tambahan" type="email" values={data.settings.additionalEmails} onChange={v => setting("additionalEmails", v)} />
+                    <ContactListField label="Telepon tambahan" values={data.settings.additionalPhones} onChange={v => setting("additionalPhones", v)} />
                   </div>
+                  <h3 className="form-section-title">Footer & Formulir Kontak</h3>
+                  <label>Deskripsi footer<textarea rows={3} maxLength={1000} value={data.settings.footerText} onChange={e => setting("footerText", e.target.value)} /></label>
+                  <label>Judul formulir kontak<input maxLength={160} value={data.settings.contactFormTitle} onChange={e => setting("contactFormTitle", e.target.value)} /></label>
+                  <label>Pengantar formulir kontak<textarea rows={3} maxLength={1000} value={data.settings.contactFormText} onChange={e => setting("contactFormText", e.target.value)} /></label>
+                  <h3 className="form-section-title">Beranda & Logo</h3>
                   <label>
                     Judul beranda
                     <textarea

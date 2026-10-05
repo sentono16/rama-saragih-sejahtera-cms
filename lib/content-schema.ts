@@ -41,6 +41,12 @@ const settings = z.object({
   email: z.union([z.literal(""), z.string().email()]),
   phone: z.string().max(60),
   address: z.string().max(500),
+  branchAddress: z.string().max(500),
+  additionalEmails: z.array(z.string().email().max(200)).max(10),
+  additionalPhones: z.array(z.string().min(1).max(60)).max(10),
+  footerText: z.string().max(1000),
+  contactFormTitle: z.string().max(160),
+  contactFormText: z.string().max(1000),
   seoTitle: z.string().max(200),
   seoDescription: z.string().max(500),
 });
@@ -48,7 +54,7 @@ export const contentSchema = z
   .object({
     settings,
     entries: z.array(entrySchema).max(300),
-    schemaVersion: z.literal(2),
+    schemaVersion: z.literal(3),
   })
   .superRefine((data, ctx) => {
     const paths = data.entries.map((e) =>

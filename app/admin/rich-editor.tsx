@@ -8,6 +8,16 @@ import { TableKit } from "@tiptap/extension-table";
 import { TextStyleKit } from "@tiptap/extension-text-style";
 import { uploadFile } from "../../lib/upload-client";
 import { cleanHtmlClientLink } from "./editor-utils";
+const EditableImage = Image.extend({
+  addAttributes() {
+    return { ...this.parent?.(), width: {
+      default: null,
+      parseHTML: element => element.getAttribute("width"),
+      renderHTML: attrs => Number(attrs.width) >= 100 && Number(attrs.width) <= 2400
+        ? { width: String(Number(attrs.width)), style: `width: ${Number(attrs.width)}px` } : {},
+    } };
+  },
+});
 export default function RichEditor({
   value,
   onChange,
@@ -33,7 +43,7 @@ export default function RichEditor({
         heading: { levels: [2, 3, 4] },
         link: { openOnClick: false },
       }),
-      Image.configure({ allowBase64: false }),
+      EditableImage.configure({ allowBase64: false }),
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       TableKit,
       TextStyleKit,
@@ -221,7 +231,7 @@ export default function RichEditor({
         <select
           aria-label="Ukuran teks"
           disabled={source || uploading}
-          defaultValue=""
+          value={editor.getAttributes("textStyle").fontSize || ""}
           onChange={(e) =>
             e.target.value
               ? editor.chain().focus().setFontSize(e.target.value).run()
@@ -238,7 +248,7 @@ export default function RichEditor({
         <select
           aria-label="Jenis font"
           disabled={source || uploading}
-          defaultValue=""
+          value={editor.getAttributes("textStyle").fontFamily || ""}
           onChange={(e) =>
             e.target.value
               ? editor.chain().focus().setFontFamily(e.target.value).run()
@@ -305,6 +315,15 @@ export default function RichEditor({
         )}
         {button("Upload gambar", () => imageInput.current?.click())}
         {button("Upload dokumen", () => fileInput.current?.click())}
+        {button("Edit gambar", () => {
+          const attrs = editor.getAttributes("image");
+          const alt = window.prompt("Deskripsi gambar (teks alternatif):", attrs.alt || "");
+          if (alt === null) return;
+          const width = window.prompt("Lebar gambar dalam piksel (100–2400). Kosongkan untuk lebar otomatis:", attrs.width || "");
+          if (width === null) return;
+          if (width && (!/^\d+$/.test(width) || Number(width) < 100 || Number(width) > 2400)) { onError("Lebar gambar harus antara 100 dan 2400 piksel."); return; }
+          editor.chain().focus().updateAttributes("image", { alt: alt.slice(0, 200), width: width || null }).run();
+        }, false, !editor.isActive("image"))}
         {button(
           "Hapus gambar",
           () => editor.chain().focus().deleteSelection().run(),
@@ -374,7 +393,7 @@ export default function RichEditor({
       <div className="editor-status">
         {uploading
           ? "Mengunggah file…"
-          : "PNG / JPG / WEBP dan PDF / DOC / DOCX, maksimum 10 MB per file. Pilih gambar di editor untuk menghapusnya."}
+          : "PNG / JPG / WEBP dan PDF / DOC / DOCX, maksimum 10 MB per file. Pilih gambar untuk mengedit ukuran/deskripsi atau menghapusnya. Kelompok foto proyek dapat diunggah melalui Album Foto di bawah editor."}
       </div>
     </div>
   );

@@ -31,8 +31,8 @@ test("legacy content upgrades without overwriting saved settings or entries", ()
   const data = normalizeContent(old);
   assert.equal(findPage(data, "perusahaan").body, old.settings.about);
   assert.equal(data.entries[0].title, "Layanan tersimpan");
-  assert.equal(data.schemaVersion, 2);
-  assert.equal(data.entries.filter((e) => e.type === "page").length, 8);
+  assert.equal(data.schemaVersion, 3);
+  assert.equal(data.entries.filter((e) => e.type === "page").length, 12);
   assert.ok(contentSchema.safeParse(data).success);
   assert.equal(old.schemaVersion, undefined);
 });
@@ -170,4 +170,44 @@ test("table cell spans survive and duplicate photo IDs are rejected", () => {
     caption: "",
   }));
   assert.ok(!contentSchema.safeParse(data).success);
+});
+test("v2 profile upgrade fills empty contacts while preserving edits and deleted core pages", () => {
+  const old = normalizeContent(clone(defaults));
+  old.schemaVersion = 2;
+  old.entries = old.entries.filter(e => !["perusahaan", "legalitas", "visi-misi", "qhsse", "struktur-organisasi", "kebijakan-keselamatan"].includes(e.slug));
+  old.settings.email = "saved@example.com";
+  old.settings.phone = "";
+  old.settings.logo = "/images/logo-rss.png";
+  old.settings.footerLogo = "/media/12345678-1234-1234-1234-123456789012";
+  delete old.settings.branchAddress;
+  const updated = normalizeContent(old);
+  assert.equal(updated.settings.email, "saved@example.com");
+  assert.equal(updated.settings.phone, "+62 831 3457 7149");
+  assert.equal(updated.settings.logo, "/images/logo-rss-transparent.png");
+  assert.equal(updated.settings.footerLogo, old.settings.footerLogo);
+  assert.ok(updated.settings.branchAddress.includes("Lantai 7"));
+  assert.equal(findPage(updated, "perusahaan"), undefined);
+  assert.equal(findPage(updated, "legalitas"), undefined);
+  assert.ok(findPage(updated, "qhsse").body.includes("2 Januari 2025"));
+});
+test("all new profile pages and contact values can be deleted without being restored", () => {
+  const data = normalizeContent(clone(defaults));
+  data.entries = data.entries.filter(e => e.type !== "page");
+  for (const key of ["logo", "footerLogo", "address", "branchAddress", "email", "phone"]) data.settings[key] = "";
+  data.settings.additionalEmails = [];
+  data.settings.additionalPhones = [];
+  const reloaded = normalizeContent(clone(contentSchema.parse(data)));
+  assert.equal(reloaded.entries.filter(e => e.type === "page").length, 0);
+  for (const key of ["logo", "footerLogo", "address", "branchAddress", "email", "phone"]) assert.equal(reloaded.settings[key], "");
+  assert.deepEqual(reloaded.settings.additionalPhones, []);
+});
+test("profile contacts and safe image sizing survive storage validation", () => {
+  const data = contentSchema.parse(normalizeContent(clone(defaults)));
+  assert.equal(data.settings.additionalEmails[0], "purbarama09@gmail.com");
+  assert.equal(data.settings.additionalPhones.length, 2);
+  assert.ok(data.settings.address.includes("Medan 20123"));
+  const html = cleanHtml('<img src="/images/logo-rss.png" alt="Logo" width="300" style="width:300px;position:fixed">');
+  assert.ok(html.includes('width="300"'));
+  assert.ok(html.includes("width:300px"));
+  assert.ok(!html.includes("position"));
 });
